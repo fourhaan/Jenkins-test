@@ -1,0 +1,48 @@
+pipeline {
+    agent {
+        docker {
+            image 'bitrise/android:latest' // or your custom Android SDK image
+        }
+    }
+
+    environment {
+        GRADLE_USER_HOME = "${env.WORKSPACE}/.gradle"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh './gradlew clean assembleDebug'
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh './gradlew testDebugUnitTest'
+            }
+            post {
+                always {
+                    junit '**/build/test-results/testDebugUnitTest/*.xml'
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh './gradlew lintDebug'
+            }
+        }
+
+        stage('Archive APK') {
+            steps {
+                archiveArtifacts artifacts: '**/build/outputs/apk/debug/*.apk', fingerprint: true
+            }
+        }
+    }
+}
